@@ -1,0 +1,96 @@
+//cli usage: aws cloudformation create-stack --stack-name "CPRPM" --template-body file://cp-cf.json --parameters ParameterKey="gitHubOauth",ParameterValue="***"
+{
+    "Parameters": {
+        "gitHubUser": {
+            "Description": "GitHub User",
+            "Type": "String",
+            "Default": "knizami"
+        },
+        "gitHubRepo": {
+            "Description": "GitHub Repository",
+            "Type": "String",
+            "Default": "rpmbuilder"
+        },
+        "gitHubBranch": {
+            "Description": "GitHub Branch",
+            "Type": "String",
+            "Default": "master"
+        },
+        "gitHubOauth": {
+            "Description": "An Oath Token for the Github Repository",
+            "Type": "String",
+            "NoEcho": true,
+            "Default": ""
+        }
+    },
+
+    "Resources": {
+        "LandmarkRPM": {
+            "Type": "AWS::CodePipeline::Pipeline",
+            "Properties": {
+                "ArtifactStore": {
+                    "Type": "S3",
+                    "Location": "codepipeline-us-west-2-925789086864"
+                },
+                "DisableInboundStageTransitions": [],
+                "Name": "CFRPM",
+                "RestartExecutionOnUpdate": false,
+                "RoleArn": "arn:aws:iam::414023535224:role/AWS-CodePipeline-Service",
+                "Stages": [{
+                        "Name": "Source",
+                        "Actions": [{
+                            "InputArtifacts": [],
+                            "Name": "Source",
+                            "ActionTypeId": {
+                                "Category": "Source",
+                                "Owner": "ThirdParty",
+                                "Version": "1",
+                                "Provider": "GitHub"
+                            },
+                            "OutputArtifacts": [{
+                                "Name": "MyApp"
+                            }],
+                            "Configuration": {
+                                "Owner": {
+                                    "Ref": "gitHubUser"
+                                },
+                                "Repo": {
+                                    "Ref": "gitHubRepo"
+                                },
+                                "Branch": {
+                                    "Ref": "gitHubBranch"
+                                },
+                                "OAuthToken": {
+                                    "Ref": "gitHubOauth"
+                                }
+                            },
+                            "RunOrder": 1
+                        }]
+                    },
+                    {
+                        "Name": "Build",
+                        "Actions": [{
+                            "InputArtifacts": [{
+                                "Name": "MyApp"
+                            }],
+                            "Name": "CodeBuild",
+                            "ActionTypeId": {
+                                "Category": "Build",
+                                "Owner": "AWS",
+                                "Version": "1",
+                                "Provider": "CodeBuild"
+                            },
+                            "OutputArtifacts": [{
+                                "Name": "MyAppBuild"
+                            }],
+                            "Configuration": {
+                                "ProjectName": "build_container"
+                            },
+                            "RunOrder": 1
+                        }]
+                    }
+                ]
+            }
+        }
+    }
+}
